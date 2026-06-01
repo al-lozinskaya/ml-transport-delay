@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+mlruns/
+models/*.pkl
+models/*.joblib
+reports/figures/*.png
+reports/figures/*.json
+reports/figures/*.txt
+.env
+.DS_Store
+.pytest_cache/
