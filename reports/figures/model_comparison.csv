@@ -1,4 +1,73 @@
-model_name,best_cv_f1,accuracy,precision,recall,f1,roc_auc,best_params
-RandomForestClassifier,0.8567344380588479,0.75,0.75,1.0,0.8571428571428571,0.5377000000000001,"{""model"": ""RandomForestClassifier"", ""model__max_depth"": ""8"", ""model__n_estimators"": ""30"", ""selector__k"": ""all""}"
-GradientBoostingClassifier,0.8567344380588479,0.75,0.75,1.0,0.8571428571428571,0.4767333333333333,"{""model"": ""GradientBoostingClassifier"", ""model__learning_rate"": ""0.05"", ""model__max_depth"": ""2"", ""model__n_estimators"": ""10"", ""selector__k"": ""5""}"
-LogisticRegression,0.8567344380588479,0.75,0.75,1.0,0.8571428571428571,0.4503166666666667,"{""model"": ""LogisticRegression"", ""model__C"": ""0.1"", ""selector__k"": ""5""}"
+model_name,best_cv_accuracy,best_cv_balanced_accuracy,best_cv_precision,best_cv_recall,best_cv_f1,best_cv_f1_macro,best_cv_roc_auc,accuracy,balanced_accuracy,precision,recall,f1,f1_macro,roc_auc,confusion_matrix,classification_report,predicted_class_counts,single_class_prediction,prediction_warning,best_params
+DummyClassifier_most_frequent,0.7493751947026817,0.5,0.7493751947026817,1.0,0.8567344380588479,0.42836721902942393,0.5,0.75,0.5,0.75,1.0,0.8571428571428571,0.42857142857142855,0.5,"[[0, 100], [0, 300]]","              precision    recall  f1-score   support
+
+           0       0.00      0.00      0.00       100
+           1       0.75      1.00      0.86       300
+
+    accuracy                           0.75       400
+   macro avg       0.38      0.50      0.43       400
+weighted avg       0.56      0.75      0.64       400
+",{1: 400},True,Модель предсказывает только один класс.,"{""model"": ""DummyClassifier"", ""selector__k"": ""all""}"
+HistGradientBoostingClassifier,0.7431329974492485,0.4974875621890547,0.748405253283302,0.9899999999999999,0.8523835085985244,0.4306962588037668,0.5090501362236437,0.75,0.5,0.75,1.0,0.8571428571428571,0.42857142857142855,0.48789999999999994,"[[0, 100], [0, 300]]","              precision    recall  f1-score   support
+
+           0       0.00      0.00      0.00       100
+           1       0.75      1.00      0.86       300
+
+    accuracy                           0.75       400
+   macro avg       0.38      0.50      0.43       400
+weighted avg       0.56      0.75      0.64       400
+",{1: 400},True,Модель предсказывает только один класс.,"{""model"": ""HistGradientBoostingClassifier"", ""model__learning_rate"": ""0.05"", ""model__max_iter"": ""200"", ""selector__k"": ""10""}"
+ExtraTreesClassifier_balanced,0.6062496925747132,0.5156726393097171,0.7581976004780658,0.6972263993316625,0.7262043069156613,0.5117418033817271,0.5103387121410492,0.6,0.48333333333333334,0.7413793103448276,0.7166666666666667,0.7288135593220338,0.48345439870863594,0.4858666666666667,"[[25, 75], [85, 215]]","              precision    recall  f1-score   support
+
+           0       0.23      0.25      0.24       100
+           1       0.74      0.72      0.73       300
+
+    accuracy                           0.60       400
+   macro avg       0.48      0.48      0.48       400
+weighted avg       0.61      0.60      0.61       400
+","{0: 110, 1: 290}",False,,"{""model"": ""ExtraTreesClassifier"", ""model__max_depth"": ""8"", ""model__n_estimators"": ""10"", ""selector__k"": ""10""}"
+GradientBoostingClassifier,0.7493751947026817,0.5,0.7493751947026817,1.0,0.8567344380588479,0.42836721902942393,0.5266619985910048,0.75,0.5,0.75,1.0,0.8571428571428571,0.42857142857142855,0.4803666666666667,"[[0, 100], [0, 300]]","              precision    recall  f1-score   support
+
+           0       0.00      0.00      0.00       100
+           1       0.75      1.00      0.86       300
+
+    accuracy                           0.75       400
+   macro avg       0.38      0.50      0.43       400
+weighted avg       0.56      0.75      0.64       400
+",{1: 400},True,Модель предсказывает только один класс.,"{""model"": ""GradientBoostingClassifier"", ""model__learning_rate"": ""0.05"", ""model__max_depth"": ""2"", ""model__n_estimators"": ""30"", ""selector__k"": ""10""}"
+DummyClassifier_stratified,0.6043618085273333,0.4887052831082681,0.74353339193905,0.7205931495405179,0.7318832924256805,0.48869723590391384,0.4887052831082681,0.61,0.48,0.74,0.74,0.74,0.48,0.48,"[[22, 78], [78, 222]]","              precision    recall  f1-score   support
+
+           0       0.22      0.22      0.22       100
+           1       0.74      0.74      0.74       300
+
+    accuracy                           0.61       400
+   macro avg       0.48      0.48      0.48       400
+weighted avg       0.61      0.61      0.61       400
+","{0: 100, 1: 300}",False,,"{""model"": ""DummyClassifier"", ""selector__k"": ""all""}"
+RandomForestClassifier_balanced,0.6556438598093846,0.507276727265926,0.7532747178470959,0.8049436090225562,0.7756194037221863,0.4955844898457158,0.5059765162283819,0.5975,0.47833333333333333,0.738831615120275,0.7166666666666667,0.727580372250423,0.478622722010379,0.47795,"[[24, 76], [85, 215]]","              precision    recall  f1-score   support
+
+           0       0.22      0.24      0.23       100
+           1       0.74      0.72      0.73       300
+
+    accuracy                           0.60       400
+   macro avg       0.48      0.48      0.48       400
+weighted avg       0.61      0.60      0.60       400
+","{0: 109, 1: 291}",False,,"{""model"": ""RandomForestClassifier"", ""model__max_depth"": ""None"", ""model__n_estimators"": ""50"", ""selector__k"": ""5""}"
+LogisticRegression_balanced,0.5962317272265203,0.5224247496851582,0.7630837437132051,0.6705555555555556,0.7117229100870327,0.5118787754881791,0.5188399559221438,0.5975,0.4716666666666667,0.735593220338983,0.7233333333333334,0.7294117647058823,0.47202295552367285,0.4654,"[[22, 78], [83, 217]]","              precision    recall  f1-score   support
+
+           0       0.21      0.22      0.21       100
+           1       0.74      0.72      0.73       300
+
+    accuracy                           0.60       400
+   macro avg       0.47      0.47      0.47       400
+weighted avg       0.60      0.60      0.60       400
+","{0: 105, 1: 295}",False,,"{""model"": ""LogisticRegression"", ""model__C"": ""1.0"", ""selector__k"": ""10""}"
+DecisionTreeClassifier_balanced,0.4029836063269881,0.502260268207833,0.746781540899188,0.3033646616541354,0.3455101801427703,0.3486613787549718,0.5090962636691232,0.6075,0.4683333333333334,0.7344262295081967,0.7466666666666667,0.740495867768595,0.4676838313201949,0.4644499999999999,"[[19, 81], [76, 224]]","              precision    recall  f1-score   support
+
+           0       0.20      0.19      0.19       100
+           1       0.73      0.75      0.74       300
+
+    accuracy                           0.61       400
+   macro avg       0.47      0.47      0.47       400
+weighted avg       0.60      0.61      0.60       400
+","{0: 95, 1: 305}",False,,"{""model"": ""DecisionTreeClassifier"", ""model__max_depth"": ""4"", ""selector__k"": ""10""}"

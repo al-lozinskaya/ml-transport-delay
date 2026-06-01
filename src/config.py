@@ -18,6 +18,18 @@ LEAKAGE_COLUMNS = [
     "actual_arrival_delay_min",
 ]
 
+MODEL_N_ESTIMATORS = [10, 30, 50, 70,100, 200]
+
+SCORING = {
+    "accuracy": "accuracy",
+    "balanced_accuracy": "balanced_accuracy",
+    "precision": "precision",
+    "recall": "recall",
+    "f1": "f1",
+    "f1_macro": "f1_macro",
+    "roc_auc": "roc_auc",
+}
+
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
 CV_FOLDS = 3

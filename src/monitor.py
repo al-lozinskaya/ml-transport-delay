@@ -92,7 +92,7 @@ def log_to_mlflow(search: GridSearchCV, metrics: dict, artifact_paths: list[Path
     with mlflow.start_run(run_name=_model_name(best_estimator)):
         mlflow.log_param("model_name", _model_name(best_estimator))
         mlflow.log_params({f"best_{key}": str(value) for key, value in search.best_params_.items()})
-        mlflow.log_param("cv_best_f1", search.best_score_)
+        mlflow.log_param(f"cv_best_{search.refit}", search.best_score_)
 
         for key, value in metrics.items():
             if isinstance(value, (int, float)):
@@ -120,5 +120,21 @@ def log_model_comparison_runs(comparison) -> None:
             mlflow.set_tag("run_type", "model_comparison")
             mlflow.log_param("model_name", row["model_name"])
             mlflow.log_param("best_params", row["best_params"])
-            for metric_name in ["best_cv_f1", "accuracy", "precision", "recall", "f1", "roc_auc"]:
-                mlflow.log_metric(metric_name, float(row[metric_name]))
+            for metric_name in [
+                "best_cv_accuracy",
+                "best_cv_balanced_accuracy",
+                "best_cv_precision",
+                "best_cv_recall",
+                "best_cv_f1",
+                "best_cv_f1_macro",
+                "best_cv_roc_auc",
+                "accuracy",
+                "balanced_accuracy",
+                "precision",
+                "recall",
+                "f1",
+                "f1_macro",
+                "roc_auc",
+            ]:
+                if metric_name in row:
+                    mlflow.log_metric(metric_name, float(row[metric_name]))
