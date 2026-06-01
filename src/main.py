@@ -63,4 +63,6 @@ def run_pipeline() -> tuple[Pipeline, dict]:
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    _, metrics = run_pipeline()
+    for metric_name in ["accuracy", "precision", "recall", "f1", "roc_auc"]:
+        print(f"{metric_name}: {metrics[metric_name]:.4f}")

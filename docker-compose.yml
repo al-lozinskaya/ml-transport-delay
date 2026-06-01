@@ -1,12 +1,10 @@
 services:
   mlflow:
-    image: python:3.11-slim
+    build: .
     working_dir: /app
     environment:
       GIT_PYTHON_REFRESH: quiet
-    command: >
-      sh -c "pip install --no-cache-dir mlflow==2.14.3 &&
-             mlflow ui --host 0.0.0.0 --port 5000 --backend-store-uri /app/mlruns"
+    command: mlflow ui --host 0.0.0.0 --port 5000 --backend-store-uri /app/mlruns
     ports:
       - "5000:5000"
     volumes:

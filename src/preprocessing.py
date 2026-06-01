@@ -4,56 +4,62 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-
-def _looks_like_date(series: pd.Series) -> bool:
-    values = series.dropna().astype(str)
-    if values.empty:
-        return False
-    return values.str.match(r"^\d{4}-\d{2}-\d{2}$").mean() >= 0.8
+from src.config import LEAKAGE_COLUMNS, TARGET_COLUMN
 
 
-def _looks_like_time(series: pd.Series) -> bool:
-    values = series.dropna().astype(str)
-    if values.empty:
-        return False
-    return values.str.match(r"^\d{2}:\d{2}:\d{2}$").mean() >= 0.8
+RAW_TIME_COLUMNS = ["date", "time", "scheduled_departure", "scheduled_arrival"]
 
 
-def add_datetime_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Преобразовать строковые признаки, которые выглядят как даты или время, 
-    в числовые календарные признаки (например, час, день недели, месяц). 
-    Это может помочь модели лучше понять временные зависимости в данных."""
+def _parse_clock(series: pd.Series) -> pd.Series:
+    return pd.to_datetime(series.astype(str), format="%H:%M:%S", errors="coerce")
+
+
+def _duration_minutes(start: pd.Series, end: pd.Series) -> pd.Series:
+    start_time = _parse_clock(start)
+    end_time = _parse_clock(end)
+    duration = (end_time - start_time).dt.total_seconds() / 60
+    return duration.where(duration >= 0, duration + 24 * 60)
+
+
+def _drop_forbidden_training_columns(df: pd.DataFrame) -> pd.DataFrame:
+    # trip_id — технический идентификатор, а фактические задержки известны только после поездки.
+    # actual_arrival_delay_min напрямую раскрывает delayed, поэтому это утечка данных.
+    forbidden = [column for column in [*LEAKAGE_COLUMNS, TARGET_COLUMN] if column in df.columns]
+    return df.drop(columns=forbidden)
+
+
+def _fix_event_attendance(df: pd.DataFrame) -> pd.DataFrame:
     result = df.copy()
-
-    for column in list(result.columns):
-        if not pd.api.types.is_object_dtype(result[column]):
-            continue
-
-        lower_name = column.lower()
-        if any(token in lower_name for token in ["time", "departure", "arrival"]) or _looks_like_time(
-            result[column]
-        ):
-            parsed = pd.to_datetime(result[column].astype(str), format="%H:%M:%S", errors="coerce")
-            if parsed.notna().any():
-                result[f"{column}_hour"] = parsed.dt.hour
-                result = result.drop(columns=[column])
-                continue
-
-        if "date" in lower_name or _looks_like_date(result[column]):
-            parsed = pd.to_datetime(result[column], format="%Y-%m-%d", errors="coerce")
-            if parsed.notna().any():
-                result[f"{column}_day_of_week"] = parsed.dt.dayofweek
-                result[f"{column}_month"] = parsed.dt.month
-                result = result.drop(columns=[column])
-
+    if {"event_type", "event_attendance_est"}.issubset(result.columns):
+        no_event = result["event_type"].astype(str).str.strip().str.lower().eq("none")
+        result.loc[no_event, "event_attendance_est"] = 0
     return result
 
 
+def add_datetime_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Создать признаки из даты/времени и удалить сырые временные колонки."""
+    result = df.copy()
+
+    if "date" in result.columns:
+        parsed_date = pd.to_datetime(result["date"], format="%Y-%m-%d", errors="coerce")
+        result["month"] = parsed_date.dt.month
+        result["day"] = parsed_date.dt.day
+        result["is_weekend"] = parsed_date.dt.dayofweek.isin([5, 6]).astype("Int64")
+
+    clock_column = "time" if "time" in result.columns else "scheduled_departure"
+    if clock_column in result.columns:
+        parsed_time = _parse_clock(result[clock_column])
+        result["hour"] = parsed_time.dt.hour
+        result["minute"] = parsed_time.dt.minute
+
+    if {"scheduled_departure", "scheduled_arrival"}.issubset(result.columns):
+        result["planned_duration_min"] = _duration_minutes(result["scheduled_departure"], result["scheduled_arrival"])
+
+    return result.drop(columns=[column for column in RAW_TIME_COLUMNS if column in result.columns])
+
+
 def build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
-    """Построить препроцессор для числовых и категориальных признаков.
-    Числовые признаки будут заполнены медианой и стандартизированы,
-    а категориальные признаки будут заполнены константой и закодированы с помощью One-Hot Encoding. 
-    Это обеспечит, что модель сможет эффективно использовать все типы данных."""
+    """Собрать preprocessing для числовых и категориальных признаков."""
     numeric_features = X.select_dtypes(include=["number", "bool"]).columns.tolist()
     categorical_features = X.select_dtypes(exclude=["number", "bool"]).columns.tolist()
 
@@ -81,5 +87,7 @@ def build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
 
 
 def prepare_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Преобразовать признаки, добавив календарные признаки и закодировав категориальные переменные."""
-    return add_datetime_features(df)
+    """Подготовить признаки без целевой переменной и leakage-колонок."""
+    result = _drop_forbidden_training_columns(df)
+    result = _fix_event_attendance(result)
+    return add_datetime_features(result)

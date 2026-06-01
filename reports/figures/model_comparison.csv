@@ -1,4 +1,4 @@
 model_name,best_cv_f1,accuracy,precision,recall,f1,roc_auc,best_params
-RandomForestClassifier,0.8567344380588479,0.75,0.75,1.0,0.8571428571428571,0.4986333333333334,"{""model"": ""RandomForestClassifier"", ""model__max_depth"": ""8"", ""model__n_estimators"": ""50"", ""selector__k"": ""all""}"
+RandomForestClassifier,0.8567344380588479,0.75,0.75,1.0,0.8571428571428571,0.5377000000000001,"{""model"": ""RandomForestClassifier"", ""model__max_depth"": ""8"", ""model__n_estimators"": ""30"", ""selector__k"": ""all""}"
 GradientBoostingClassifier,0.8567344380588479,0.75,0.75,1.0,0.8571428571428571,0.4767333333333333,"{""model"": ""GradientBoostingClassifier"", ""model__learning_rate"": ""0.05"", ""model__max_depth"": ""2"", ""model__n_estimators"": ""10"", ""selector__k"": ""5""}"
 LogisticRegression,0.8567344380588479,0.75,0.75,1.0,0.8571428571428571,0.4503166666666667,"{""model"": ""LogisticRegression"", ""model__C"": ""0.1"", ""selector__k"": ""5""}"
