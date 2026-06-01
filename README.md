@@ -17,6 +17,8 @@
 
 ## Датасет
 
+ Датасет взят с [kaggle - Public Transport Delays](https://www.kaggle.com/datasets/khushikyad001/public-transport-delays-with-weather-and-events) в учебных целях.
+
 Файл данных находится в `data/public_transport_delays.csv`. В датасете есть признаки маршрута, станций, расписания, погоды, трафика, праздников, часов пик, сезона и целевая колонка `delayed`.
 
 ## ETL
