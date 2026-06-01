@@ -2,7 +2,7 @@ import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 
-from src.config import MODEL_PATH, RANDOM_STATE, TARGET_COLUMN, TEST_SIZE
+from src.config import MODEL_PATH, RANDOM_STATE, TARGET_COLUMN, TEST_SIZE, ensure_runtime_dirs
 from src.evaluate import (
     calculate_metrics,
     evaluate_model_comparison,
@@ -16,11 +16,13 @@ from src.evaluate import (
 )
 from src.load_data import drop_leakage_columns, load_data, split_features_target
 from src.monitor import SystemMonitor, log_to_mlflow, validate_model_quality
-from src.predprocessing import prepare_features
+from src.preprocessing import prepare_features
 from src.train import _model_name, _save_feature_importance, tune_model
 
 
 def run_pipeline() -> tuple[Pipeline, dict]:
+    ensure_runtime_dirs()
+
     df = load_data()
     df = drop_leakage_columns(df)
     X, y = split_features_target(df)

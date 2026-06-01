@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 
-from src.predprocessing import add_datetime_features, build_preprocessor
+from src.preprocessing import add_datetime_features, build_preprocessor
 
 
 def test_add_datetime_features_extracts_calendar_columns():

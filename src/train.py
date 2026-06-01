@@ -16,7 +16,7 @@ from src.config import (
     FIGURES_DIR,
     RANDOM_STATE,
 )
-from src.predprocessing import build_preprocessor
+from src.preprocessing import build_preprocessor
 
 
 def build_training_pipeline(X: pd.DataFrame) -> Pipeline:

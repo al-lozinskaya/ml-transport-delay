@@ -23,7 +23,7 @@
 
 Extract: `src.load_data.load_data` читает CSV через `pandas`.
 
-Transform: `src.load_data.drop_leakage_columns` удаляет технические и опасные признаки, а `src.predprocessing.prepare_features` извлекает признаки из date/time колонок.
+Transform: `src.load_data.drop_leakage_columns` удаляет технические и опасные признаки, а `src.preprocessing.prepare_features` извлекает признаки из date/time колонок.
 
 Load: подготовленные `X` и `y` передаются в sklearn pipeline, где preprocessing и обучение выполняются единым воспроизводимым процессом.
 
@@ -65,7 +65,7 @@ Date/time признаки обрабатываются в коде: из кол
 
 - `src/main.py` - основная точка входа, собирает весь пайплайн end-to-end.
 - `src/load_data.py` - загрузка CSV, проверка `delayed`, удаление leakage columns и разделение на `X`/`y`.
-- `src/predprocessing.py` - date/time features и preprocessing pipeline.
+- `src/preprocessing.py` - date/time features и preprocessing pipeline.
 - `src/train.py` - training pipeline, `SelectKBest`, сетки гиперпараметров и `GridSearchCV`.
 - `src/evaluate.py` - метрики, confusion matrix, classification report и графики.
 - `src/monitor.py` - quality warnings, системные метрики CPU/RAM и MLflow logging.
@@ -99,6 +99,15 @@ Date/time признаки обрабатываются в коде: из кол
 
 Проект содержит `Dockerfile` для запуска обучения и `docker-compose.yml` с сервисами `mlflow` и `trainer`.
 
+Docker image содержит код проекта и зависимости. Контейнер `trainer` запускает обучение, а результаты сохраняются не внутри одноразового контейнера, а в локальные папки проекта через bind mounts:
+
+- `./data:/app/data:ro` - исходные данные доступны контейнеру только для чтения;
+- `./reports:/app/reports` - графики, метрики и текстовые отчеты;
+- `./models:/app/models` - обученная модель;
+- `./mlruns:/app/mlruns` - MLflow-логи и артефакты экспериментов.
+
+После завершения контейнера файлы остаются на локальной машине в `reports/`, `models/` и `mlruns/`. Генерируемые артефакты не коммитятся в GitHub; исключение можно сделать только для специально добавленных демонстрационных скриншотов в `docs/screenshots/`.
+
 MLflow UI после запуска Docker Compose доступен по адресу:
 
 ```text
@@ -121,6 +130,19 @@ mlflow ui
 docker compose up --build
 ```
 
+Посмотреть логи обучения и использование ресурсов можно командами:
+
+```bash
+docker compose logs trainer
+docker stats
+```
+
+После запуска:
+
+- MLflow UI доступен на `http://localhost:5000`;
+- отчеты появляются в `reports/`;
+- модель появляется в `models/`.
+
 ## Структура проекта
 
 ```text
@@ -132,7 +154,7 @@ ml-transport-delay/
 │   ├── config.py
 │   ├── main.py
 │   ├── load_data.py
-│   ├── predprocessing.py
+│   ├── preprocessing.py
 │   ├── train.py
 │   ├── evaluate.py
 │   └── monitor.py

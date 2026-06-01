@@ -26,4 +26,10 @@ MIN_F1 = 0.6
 MIN_ROC_AUC = 0.6
 
 MLFLOW_EXPERIMENT_NAME = "transport-delay-classification"
+MLFLOW_DIR = PROJECT_ROOT / "mlruns"
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "file:./mlruns")
+
+
+def ensure_runtime_dirs() -> None:
+    for path in [REPORTS_DIR, FIGURES_DIR, MODELS_DIR, MLFLOW_DIR]:
+        path.mkdir(parents=True, exist_ok=True)

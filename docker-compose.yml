@@ -10,7 +10,10 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - .:/app
+      - ./data:/app/data:ro
+      - ./reports:/app/reports
+      - ./models:/app/models
+      - ./mlruns:/app/mlruns
 
   trainer:
     build: .
@@ -20,5 +23,8 @@ services:
       MLFLOW_TRACKING_URI: file:/app/mlruns
       GIT_PYTHON_REFRESH: quiet
     volumes:
-      - .:/app
+      - ./data:/app/data:ro
+      - ./reports:/app/reports
+      - ./models:/app/models
+      - ./mlruns:/app/mlruns
     command: python -m src.main

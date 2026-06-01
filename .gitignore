@@ -7,6 +7,9 @@ models/*.joblib
 reports/figures/*.png
 reports/figures/*.json
 reports/figures/*.txt
+!reports/.gitkeep
+!reports/figures/.gitkeep
+!models/.gitkeep
 .env
 .DS_Store
 .pytest_cache/
