@@ -25,7 +25,7 @@
 
 Extract: `src.load_data.load_data` читает CSV через `pandas`.
 
-Transform: `src.load_data.drop_leakage_columns` удаляет технические и опасные признаки, а `src.preprocessing.prepare_features` извлекает признаки из date/time колонок.
+Transform: `src.load_data.drop_leakage_columns` удаляет технические и опасные признаки, а `src.preprocessing.prepare_features` исправляет признаки событий и удаляет сырые временные колонки.
 
 Load: подготовленные `X` и `y` передаются в sklearn pipeline, где preprocessing и обучение выполняются единым воспроизводимым процессом.
 
@@ -43,11 +43,110 @@ Load: подготовленные `X` и `y` передаются в sklearn pi
 
 Preprocessing реализован через `sklearn.pipeline.Pipeline` и `ColumnTransformer`.
 
-Для числовых признаков используются `SimpleImputer(strategy="median")` и `StandardScaler`.
+Текущая обработка признаков:
 
-Для категориальных признаков используются `SimpleImputer(strategy="constant", fill_value="unknown")` и `OneHotEncoder(handle_unknown="ignore", sparse_output=False)`.
+1. Из обучающих данных удаляются признаки, которые нельзя использовать для честного прогноза:
+   - `trip_id` — технический идентификатор поездки;
+   - `actual_departure_delay_min` — фактическая задержка отправления, известна после события;
+   - `actual_arrival_delay_min` — фактическая задержка прибытия, напрямую связана с `delayed`;
+   - `delayed` хранится отдельно в `y` и не попадает в `X`.
 
-Date/time признаки обрабатываются в коде: из колонок вроде `date` и `time` извлекаются `day_of_week`, `month` и `hour`, после чего исходные строки даты и времени удаляются.
+2. Сырые временные колонки удаляются и не используются в обучении:
+   - `date`;
+   - `time`;
+   - `scheduled_departure`;
+   - `scheduled_arrival`.
+
+3. Для событий исправляется логическая ошибка датасета: если `event_type == "None"`, то `event_attendance_est` принудительно становится `0`.
+
+4. Дальше признаки делятся по типам:
+   - числовые признаки проходят `SimpleImputer(strategy="median")` и `StandardScaler`;
+   - категориальные признаки проходят `SimpleImputer(strategy="constant", fill_value="unknown")` и `OneHotEncoder(handle_unknown="ignore", sparse_output=False)`.
+
+5. Все преобразования обучаются только внутри sklearn `Pipeline`, поэтому preprocessing не подглядывает в test-часть.
+
+В модели используются такие признаки:
+
+- маршрут и остановки: `transport_type`, `route_id`, `origin_station`, `destination_station`;
+- погода: `weather_condition`, `temperature_C`, `humidity_percent`, `wind_speed_kmh`, `precipitation_mm`;
+- события: `event_type`, `event_attendance_est`;
+- дорожная и календарная ситуация: `traffic_congestion_index`, `holiday`, `peak_hour`, `weekday`, `season`.
+
+Не используются в `X`:
+
+- `delayed` — целевая переменная, хранится отдельно в `y`;
+- `trip_id`, `actual_departure_delay_min`, `actual_arrival_delay_min` — исключены из-за leakage или технического характера;
+- `date`, `time`, `scheduled_departure`, `scheduled_arrival` — удаляются без создания новых признаков.
+
+После preprocessing сравниваются два режима:
+
+- без отбора признаков: `selector="passthrough"`;
+- с отбором признаков: `SelectKBest(score_func=f_classif)` с разными `k`.
+
+В MLflow сохраняется artifact `preprocessing/preprocessing_summary.json`. В нем можно посмотреть фактические числовые и категориальные признаки, шаги preprocessing, выбранный selector и финальную модель.
+
+## Ablation test
+
+Ablation test нужен, чтобы проверить, какие группы признаков действительно помогают модели, а какие могут давать шум или переобучение. В проекте сравниваются несколько наборов признаков из `FEATURE_SETS` в `src/config.py`.
+
+Используемые наборы:
+
+- `all_features` — все доступные честные признаки после удаления leakage и сырых временных колонок:
+  `transport_type`, `route_id`, `origin_station`, `destination_station`, погодные признаки, события, трафик, праздник, час пик, `weekday`, `season`.
+- `without_stations` — без `origin_station` и `destination_station`, но с `route_id`.
+- `without_route_and_stations` — без `route_id`, `origin_station`, `destination_station`.
+- `weather_time_events_only` — только погода, события, трафик и календарные признаки из исходного датасета.
+
+Ablation запускается как отдельный эксперимент через общий entrypoint `src.main`:
+
+```bash
+python -m src.main --mode ablation
+```
+
+Через Docker:
+
+```bash
+docker compose run --rm ablation
+```
+
+Результат сохраняется в:
+
+```text
+reports/figures/ablation_results.csv
+```
+
+В таблице ablation для каждого набора признаков сохраняются:
+
+- название набора `feature_set`;
+- количество признаков `feature_count`;
+- список признаков `features`;
+- лучшая модель `best_model`;
+- лучшие параметры `best_params`;
+- метрики `accuracy`, `balanced_accuracy`, `precision`, `recall`, `f1`, `f1_macro`, `roc_auc`.
+
+## Forward Selection
+
+Forward Selection — отдельный эксперимент для пошагового выбора исходных признаков. Он начинает с пустого набора, на каждом шаге пробует добавить один доступный признак, оценивает качество по cross-validation и оставляет признак с лучшим приростом.
+
+В отличие от `SelectKBest`, этот эксперимент выбирает именно исходные колонки датасета, например `traffic_congestion_index` или `weather_condition`, а не отдельные one-hot признаки после кодирования.
+
+Запуск локально:
+
+```bash
+python -m src.main --mode forward-selection
+```
+
+Через Docker:
+
+```bash
+docker compose run --rm forward-selection
+```
+
+Результат сохраняется в:
+
+```text
+reports/figures/forward_selection_results.csv
+```
 
 ## Автоматизация ML-пайплайна
 
@@ -65,10 +164,13 @@ Date/time признаки обрабатываются в коде: из кол
 
 ## Модули `src`
 
-- `src/main.py` - основная точка входа, собирает весь пайплайн end-to-end.
+- `src/main.py` - общая точка входа: готовит данные, делает train/test split и выбирает эксперимент по `--mode`.
+- `src/experiments/` - пакет экспериментов: общий интерфейс, registry и отдельные классы для `train`, `ablation`, `forward-selection`.
 - `src/load_data.py` - загрузка CSV, проверка `delayed`, удаление leakage columns и разделение на `X`/`y`.
-- `src/preprocessing.py` - date/time features и preprocessing pipeline.
+- `src/preprocessing.py` - удаление запрещенных/сырых временных колонок, исправление событий и preprocessing pipeline.
 - `src/train.py` - training pipeline, `SelectKBest`, сетки гиперпараметров и `GridSearchCV`.
+- `src/experiments/ablation_experiment.py` - ablation test по наборам признаков из `FEATURE_SETS`.
+- `src/experiments/forward_selection_experiment.py` - пошаговый выбор исходных признаков через Forward Selection.
 - `src/evaluate.py` - метрики, confusion matrix, classification report и графики.
 - `src/monitor.py` - quality warnings, системные метрики CPU/RAM и MLflow logging.
 - `src/config.py` - пути, целевая колонка, leakage columns и пороги качества.
@@ -99,7 +201,7 @@ Date/time признаки обрабатываются в коде: из кол
 
 ## Docker и MLflow
 
-Проект содержит `Dockerfile` для запуска обучения и `docker-compose.yml` с сервисами `mlflow` и `trainer`. Оба сервиса используют Docker image, собранный из `Dockerfile`, поэтому зависимости устанавливаются при сборке образа, а не через `pip install` при каждом запуске контейнера.
+Проект содержит `Dockerfile` для запуска обучения и `docker-compose.yml` с сервисами `mlflow`, `trainer`, `ablation` и `forward-selection`. Все ML-сервисы используют один Docker image, собранный из `Dockerfile`, но запускают `src.main` с разными `--mode`.
 
 Docker нужен для воспроизводимого запуска: контейнер изолирует Python-зависимости, читает данные из `data/` и сохраняет результаты в понятные локальные папки. Docker image содержит код проекта и зависимости. Контейнер `trainer` запускает обучение, а результаты сохраняются не внутри одноразового контейнера, а в локальные папки проекта через bind mounts:
 
@@ -121,7 +223,9 @@ http://localhost:5000
 ```bash
 python -m venv .venv
 pip install -r requirements.txt
-python -m src.main
+python -m src.main --mode train
+python -m src.main --mode ablation
+python -m src.main --mode forward-selection
 pytest
 mlflow ui
 ```
@@ -130,6 +234,21 @@ mlflow ui
 
 ```bash
 docker compose up --build
+```
+
+Если запускать через Docker Desktop кнопками, можно запускать отдельные сервисы:
+
+- `trainer` — основное обучение и сравнение моделей;
+- `ablation` — ablation test по наборам признаков;
+- `forward-selection` — пошаговый выбор признаков;
+- `mlflow` — MLflow UI.
+
+Из терминала эти же режимы можно запускать так:
+
+```bash
+docker compose run --rm trainer
+docker compose run --rm ablation
+docker compose run --rm forward-selection
 ```
 
 Посмотреть логи обучения и использование ресурсов можно командами:

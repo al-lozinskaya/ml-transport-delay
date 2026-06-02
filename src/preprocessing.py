@@ -10,20 +10,9 @@ from src.config import LEAKAGE_COLUMNS, TARGET_COLUMN
 RAW_TIME_COLUMNS = ["date", "time", "scheduled_departure", "scheduled_arrival"]
 
 
-def _parse_clock(series: pd.Series) -> pd.Series:
-    return pd.to_datetime(series.astype(str), format="%H:%M:%S", errors="coerce")
-
-
-def _duration_minutes(start: pd.Series, end: pd.Series) -> pd.Series:
-    start_time = _parse_clock(start)
-    end_time = _parse_clock(end)
-    duration = (end_time - start_time).dt.total_seconds() / 60
-    return duration.where(duration >= 0, duration + 24 * 60)
-
-
 def _drop_forbidden_training_columns(df: pd.DataFrame) -> pd.DataFrame:
-    # trip_id — технический идентификатор, а фактические задержки известны только после поездки.
-    # actual_arrival_delay_min напрямую раскрывает delayed, поэтому это утечка данных.
+    # trip_id — технический идентификатор.
+    # actual_* delay колонки известны после поездки и дают leakage.
     forbidden = [column for column in [*LEAKAGE_COLUMNS, TARGET_COLUMN] if column in df.columns]
     return df.drop(columns=forbidden)
 
@@ -36,26 +25,9 @@ def _fix_event_attendance(df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def add_datetime_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Создать признаки из даты/времени и удалить сырые временные колонки."""
-    result = df.copy()
-
-    if "date" in result.columns:
-        parsed_date = pd.to_datetime(result["date"], format="%Y-%m-%d", errors="coerce")
-        result["month"] = parsed_date.dt.month
-        result["day"] = parsed_date.dt.day
-        result["is_weekend"] = parsed_date.dt.dayofweek.isin([5, 6]).astype("Int64")
-
-    clock_column = "time" if "time" in result.columns else "scheduled_departure"
-    if clock_column in result.columns:
-        parsed_time = _parse_clock(result[clock_column])
-        result["hour"] = parsed_time.dt.hour
-        result["minute"] = parsed_time.dt.minute
-
-    if {"scheduled_departure", "scheduled_arrival"}.issubset(result.columns):
-        result["planned_duration_min"] = _duration_minutes(result["scheduled_departure"], result["scheduled_arrival"])
-
-    return result.drop(columns=[column for column in RAW_TIME_COLUMNS if column in result.columns])
+def drop_raw_time_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Удалить сырые временные колонки."""
+    return df.drop(columns=[column for column in RAW_TIME_COLUMNS if column in df.columns])
 
 
 def build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
@@ -87,7 +59,7 @@ def build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
 
 
 def prepare_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Подготовить признаки без целевой переменной и leakage-колонок."""
+    """Подготовить признаки без target, leakage и сырых временных колонок."""
     result = _drop_forbidden_training_columns(df)
     result = _fix_event_attendance(result)
-    return add_datetime_features(result)
+    return drop_raw_time_columns(result)
